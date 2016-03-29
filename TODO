@@ -1,0 +1,2 @@
+- Remove duplication from JavaGenerator and JavaBuilderGenerator (case default package)
+
