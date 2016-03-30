@@ -1,10 +1,9 @@
 module Util where
 
 import Data.Char (toLower, toUpper)
-import Data.List (intercalate)
 
 indent :: String -> String
-indent source = unlines $ map (\line -> if isBlank line then "" else "    " ++ line) (lines source)
+indent source = unlines $ fmap (\line -> if isBlank line then "" else mappend "    " line) (lines source)
 
 isBlank :: String -> Bool
 isBlank = all (`elem` "\t ")
@@ -23,4 +22,4 @@ separateNonBlanksWithNewline [x]    = x
 separateNonBlanksWithNewline (x:xs) =
   if isBlank x
   then separateNonBlanksWithNewline xs
-  else x ++ "\n" ++ separateNonBlanksWithNewline xs
+  else mconcat [x, "\n", separateNonBlanksWithNewline xs]
