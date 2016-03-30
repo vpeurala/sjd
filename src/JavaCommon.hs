@@ -44,11 +44,13 @@ packagesForClass :: M.FieldType -> ClassReader [M.Package]
 packagesForClass (M.Object className) = do
   (_, M.Codebase packages, _, _) <- ask
   return $ filter (\(M.Package _ classes) -> any (\(M.Class _ name _ _ _) -> name == className) classes) packages
+packagesForClass _ = error "This should be unreachable code"
 
 fqns :: M.FieldType -> ClassReader [M.FullyQualifiedClassName]
 fqns fieldType@(M.Object className) = do
   packages <- packagesForClass fieldType
   return $ map (\(M.Package (Just packageName) _) -> packageName ++ "." ++ className) packages
+fqns _ = error "This should be unreachable code"
 
 needsImport :: M.FieldType -> ClassReader Bool
 needsImport ft = do
@@ -57,7 +59,6 @@ needsImport ft = do
   packagesForClass' <- packagesForClass ft
   let isInDifferentPackage' = package `notElem` packagesForClass'
   return (isDomainType' && isInDifferentPackage')
-needsImport _ = return False
 
 -- TODO vpeurala 9.12.2015: Use maybeExtends and implements
 importDeclarations :: [M.Import] -> Maybe M.Extends -> M.Implements -> [M.Field] -> ClassReader M.SourceCode
