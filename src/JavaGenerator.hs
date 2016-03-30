@@ -81,7 +81,8 @@ fieldDeclaration (M.Field fieldName fieldType) = "private final " ++ J.javaize f
 
 constructorDeclaration :: ClassName -> [M.Field] -> SourceCode
 constructorDeclaration className fields =
-  "public " ++ className ++ "(" ++ intercalate ", " (map (\(M.Field fieldName fieldType) -> J.javaize fieldType ++ " " ++ fieldName) fields) ++ ") {\n" ++
+  "@JsonCreator\n" ++
+  "public " ++ className ++ "(" ++ intercalate ", " (map (\(M.Field fieldName fieldType) -> "@JsonProperty(\"" ++ fieldName ++ "\") " ++ J.javaize fieldType ++ " " ++ fieldName) fields) ++ ") {\n" ++
   indent (concatMap (\(M.Field fieldName _) -> "Objects.requireNonNull(" ++ fieldName ++ ", \"Property '" ++ fieldName ++ "' cannot be null.\");\n") fields) ++
   indent (concatMap (\(M.Field fieldName _) -> "this." ++ fieldName ++ " = " ++ fieldName ++ ";\n") fields) ++
   "}\n\n"
@@ -130,6 +131,7 @@ hashCode fields = "@Override\npublic int hashCode() {\n" ++
     "int result = 0;\n" ++
     concatMap (
       \(M.Field fieldName fieldType) -> case fieldType of
+        Long                        -> "result = 31 * Long.hashCode(" ++ fieldName ++ ");\n"
         Boolean                     -> "result = 31 * result + (" ++ fieldName ++ " ? 1 : 0);\n"
         _ | M.isPrimitive fieldType -> "result = 31 * result + " ++ fieldName ++ ";\n"
         _                           -> "result = 31 * result + " ++ fieldName ++ ".hashCode();\n"

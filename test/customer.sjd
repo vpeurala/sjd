@@ -1,4 +1,12 @@
 class Customer
   firstName: String
   lastName: String
-  
+  uid: String
+
+class Product
+  validSubProducts: List<String>
+  price: long
+  showView: boolean
+  description: String
+  change: Optional<String>
+  buyers: List<Customer>

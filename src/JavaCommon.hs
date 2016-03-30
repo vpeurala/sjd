@@ -70,4 +70,4 @@ calculateImportsFromFields :: [M.Field] -> ClassReader [M.Import]
 calculateImportsFromFields fields = do
   (generator, _, _, _) <- ask
   importsFromFields <- mapM (importsFromFieldType generator . (\(M.Field _ fieldType) -> fieldType)) fields
-  return $ nub $ "java.util.Objects" : concat importsFromFields
+  return $ nub $ [ "java.util.Objects", "com.fasterxml.jackson.annotation.JsonCreator", "com.fasterxml.jackson.annotation.JsonProperty" ] ++ concat importsFromFields
