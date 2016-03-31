@@ -18,8 +18,8 @@ declarationToPackage (Just (PackageDeclaration packageName), classDeclarations) 
   M.Package (Just packageName) $ map declarationToClass classDeclarations
 
 groupPackages :: [P.PackageOrClassDeclaration] -> [(Maybe P.PackageDeclaration, [P.ClassDeclaration])]
-groupPackages declarations = 
-  let foldResult = foldl 
+groupPackages declarations =
+  let foldResult = foldl
         (\((currentPackage, currentClasses), packages) declaration -> case declaration of
           (P.OfPackageDeclaration pd) ->
             ((Just pd, []), (currentPackage, currentClasses):packages)
@@ -30,8 +30,8 @@ groupPackages declarations =
   in uncurry (:) foldResult
 
 declarationToClass :: P.ClassDeclaration -> M.Class
-declarationToClass (P.ClassDeclaration className implements fieldDeclarations) =
-  M.Class [] className Nothing implements (map declarationToField fieldDeclarations)
+declarationToClass (P.ClassDeclaration className extends implements fieldDeclarations) =
+  M.Class [] className extends implements (map declarationToField fieldDeclarations)
 
 declarationToField :: P.FieldDeclaration -> M.Field
 declarationToField (P.FieldDeclaration fieldName fieldType) =

@@ -65,8 +65,14 @@ importsFromFieldType fieldType = do
 
 classDeclaration :: ClassName -> Maybe Extends -> Implements -> SourceCode
 classDeclaration className extends implements = "public class " ++ className ++ " " ++
+  extendsDeclaration extends ++
   implementsDeclaration implements ++
   "{\n"
+
+extendsDeclaration :: Maybe Extends -> SourceCode
+extendsDeclaration e = case e of
+  Nothing  -> ""
+  (Just s) -> "extends " ++ s ++ " "
 
 implementsDeclaration :: Implements -> SourceCode
 implementsDeclaration implements = if null implements

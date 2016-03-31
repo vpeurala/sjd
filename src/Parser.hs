@@ -15,7 +15,7 @@ data PackageOrClassDeclaration = OfPackageDeclaration PackageDeclaration |
 data PackageDeclaration = PackageDeclaration PackageName deriving (Show)
 
 -- TODO vpeurala 10.11.2015: Support imports
-data ClassDeclaration = ClassDeclaration ClassName Implements [FieldDeclaration] deriving (Show)
+data ClassDeclaration = ClassDeclaration ClassName (Maybe Extends) Implements [FieldDeclaration] deriving (Show)
 
 data CodebaseDeclaration = CodebaseDeclaration [PackageOrClassDeclaration] deriving (Show)
 
@@ -45,6 +45,14 @@ fieldDeclaration = do
     spaces
     return $ FieldDeclaration fieldName' fieldType'
 
+extends :: GenParser Char st Extends
+extends = do
+    _ <- string "extends "
+    spaces
+    type' <- typeName
+    spaces
+    return type'
+
 implements :: GenParser Char st Implements
 implements = do
     _ <- string "implements "
@@ -59,12 +67,13 @@ classDeclaration = do
     spaces
     className' <- className
     spaces
+    extends' <- optionMaybe extends
     implements' <- optionMaybe implements
     let implements'' = fromMaybe [] implements'
     spaces
     fields <- many (try fieldDeclaration)
     spaces
-    return . OfClassDeclaration $ ClassDeclaration className' implements'' fields
+    return . OfClassDeclaration $ ClassDeclaration className' extends' implements'' fields
 
 packageDeclaration :: GenParser Char st PackageOrClassDeclaration
 packageDeclaration = do

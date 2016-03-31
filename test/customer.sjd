@@ -3,13 +3,17 @@ class Customer
   lastName: String
   uid: String
 
-class Product
+class Product extends Item
   validSubProducts: List<String>
   price: long
   showView: boolean
   description: String
   change: Optional<String>
   buyers: List<Customer>
+
+class Item
+  uid: String
+  itemId: long
 
 class Specials
   booleanField: boolean
