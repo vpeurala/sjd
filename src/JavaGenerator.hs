@@ -132,6 +132,8 @@ hashCode fields = "@Override\npublic int hashCode() {\n" ++
     concatMap (
       \(M.Field fieldName fieldType) -> case fieldType of
         Long                        -> "result = 31 * Long.hashCode(" ++ fieldName ++ ");\n"
+        Float                       -> "result = 31 * Float.hashCode(" ++ fieldName ++ ");\n"
+        Double                      -> "result = 31 * Double.hashCode(" ++ fieldName ++ ");\n"
         Boolean                     -> "result = 31 * result + (" ++ fieldName ++ " ? 1 : 0);\n"
         _ | M.isPrimitive fieldType -> "result = 31 * result + " ++ fieldName ++ ";\n"
         _                           -> "result = 31 * result + " ++ fieldName ++ ".hashCode();\n"

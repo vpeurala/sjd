@@ -10,3 +10,17 @@ class Product
   description: String
   change: Optional<String>
   buyers: List<Customer>
+
+class Specials
+  booleanField: boolean
+  byteField: byte
+  charField: char
+  shortField: short
+  intField: int
+  longField: long
+  floatField: float
+  doubleField: double
+  stringField: String
+  listField: List<String>
+  optionalField: Optional<String>
+  objectField: Object
