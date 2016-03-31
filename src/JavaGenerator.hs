@@ -82,7 +82,7 @@ fieldDeclaration (M.Field fieldName fieldType) = "private final " ++ J.javaize f
 constructorDeclaration :: ClassName -> [M.Field] -> SourceCode
 constructorDeclaration className fields =
   "@JsonCreator\n" ++
-  "public " ++ className ++ "(" ++ intercalate ", " (map (\(M.Field fieldName fieldType) -> "@JsonProperty(\"" ++ fieldName ++ "\") " ++ J.javaize fieldType ++ " " ++ fieldName) fields) ++ ") {\n" ++
+  "public " ++ className ++ "(" ++ intercalate (",\n" ++ (replicate (length ("public " ++ className ++ "(")) ' ')) (map (\(M.Field fieldName fieldType) -> "@JsonProperty(\"" ++ fieldName ++ "\") " ++ J.javaize fieldType ++ " " ++ fieldName) fields) ++ ") {\n" ++
   indent (concatMap (\(M.Field fieldName _) -> "Objects.requireNonNull(" ++ fieldName ++ ", \"Property '" ++ fieldName ++ "' cannot be null.\");\n") fields) ++
   indent (concatMap (\(M.Field fieldName _) -> "this." ++ fieldName ++ " = " ++ fieldName ++ ";\n") fields) ++
   "}\n\n"
