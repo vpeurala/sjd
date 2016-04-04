@@ -42,7 +42,7 @@ importsFromFieldType :: M.FieldType -> J.ClassReader [M.Import]
 importsFromFieldType fieldType = do
   needsImport <- J.needsImport fieldType
   if needsImport
-    then Monad.liftM (concatMap (\s -> [s, s ++ "Builder"])) (J.fqns fieldType)
+    then fmap (concatMap (\s -> [s, s ++ "Builder"])) (J.fqns fieldType)
     else case fieldType of
       M.List _              -> return ["java.util.List", "java.util.ArrayList"]
       M.Optional fieldType' -> do
@@ -122,7 +122,7 @@ setter field@(M.Field fieldName fieldType) = do
       uf = U.upcase fn
       rt = "return this;"
       rn = requireNonNull fn
-    in return $ U.separateNonBlanksWithNewline $ case fieldType of
+    in return . U.separateNonBlanksWithNewline $ case fieldType of
       _ | domainType        -> [
         pb ++ "set" ++ uf ++ "(" ++ J.javaize ft ++ "Builder " ++ fn ++ ") " ++
           block (rn ++ "this." ++ fn ++ " = " ++ fn ++ ";\n" ++ rt),
