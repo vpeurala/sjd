@@ -2,9 +2,7 @@ module JavaBuilderGenerator (generateJavaClass, importsFromFieldType) where
 
 import Control.Monad
 import Control.Monad.Reader
-import Data.Char (toUpper)
-import Data.List (intercalate, isPrefixOf, nub)
-import Data.Maybe (catMaybes)
+import Data.List (intercalate)
 
 import qualified JavaCommon as J
 import Model as M
@@ -46,7 +44,7 @@ importsFromFieldType fieldType = do
   if needsImport
     then liftM (concatMap (\s -> [s, s ++ "Builder"])) (J.fqns fieldType)
     else case fieldType of
-      List fieldType'     -> return ["java.util.List", "java.util.ArrayList"]
+      List _              -> return ["java.util.List", "java.util.ArrayList"]
       Optional fieldType' -> do
         importsFromFieldType' <- importsFromFieldType fieldType'
         return $ "java.util.Optional" : importsFromFieldType'
@@ -57,7 +55,7 @@ importsFromFieldType fieldType = do
       _                   -> return []
 
 classDeclaration :: ClassName -> Maybe Extends -> Implements -> SourceCode
-classDeclaration className extends implements = "public class " ++ className ++ "Builder {"
+classDeclaration className _ _ = "public class " ++ className ++ "Builder {"
 
 fieldDeclarations :: [M.Field] -> J.ClassReader SourceCode
 fieldDeclarations fields = do
@@ -72,7 +70,7 @@ fieldDeclaration (M.Field fieldName fieldType) = do
      then "Builder " ++ fieldName ++ " = " ++ J.javaize fieldType ++ "Builder.create();\n"
      else case fieldType of
        Optional _    -> " " ++ fieldName ++ " = Optional.empty();\n"
-       List listType -> " " ++ fieldName ++ " = new ArrayList<>();\n"
+       List _        -> " " ++ fieldName ++ " = new ArrayList<>();\n"
        _             -> " " ++ fieldName ++ ";\n")
 
 getters :: [M.Field] -> J.ClassReader SourceCode
