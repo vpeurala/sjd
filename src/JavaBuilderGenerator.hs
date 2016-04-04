@@ -1,8 +1,8 @@
 module JavaBuilderGenerator (generateJavaClass, importsFromFieldType) where
 
-import Control.Monad
-import Control.Monad.Reader
-import Data.List (intercalate)
+import qualified Control.Monad as Monad
+import qualified Control.Monad.Reader as R
+import qualified Data.List as L
 
 import qualified JavaCommon as J
 import qualified Model as M
@@ -12,12 +12,12 @@ generateJavaClass :: J.Generator -> M.Codebase -> M.Package -> M.Class -> M.Java
 generateJavaClass generator codebase package@(M.Package (Just packageName) _) (M.Class imports className maybeExtends implements fields) =
   M.JavaSource (packageName ++ "." ++ className) sourceCode
   where sourceCode       = U.separateNonBlanksWithNewline sourceOfParts ++ "}"
-        sourceOfParts    = map (\p -> runReader p (generator, codebase, package, className, imports, maybeExtends, implements, fields)) parts
+        sourceOfParts    = map (\p -> R.runReader p (generator, codebase, package, className, imports, maybeExtends, implements, fields)) parts
         parts            = packageDeclaration : basicParts
 generateJavaClass generator codebase package@(M.Package Nothing _) (M.Class imports className maybeExtends implements fields) =
   M.JavaSource className sourceCode
   where sourceCode       = U.separateNonBlanksWithNewline sourceOfParts ++ "}"
-        sourceOfParts    = map (\p -> runReader p (generator, codebase, package, className, imports, maybeExtends, implements, fields)) parts
+        sourceOfParts    = map (\p -> R.runReader p (generator, codebase, package, className, imports, maybeExtends, implements, fields)) parts
         parts            = basicParts
 
 basicParts :: [J.ClassReader M.SourceCode]
@@ -31,18 +31,18 @@ basicParts = [ J.importDeclarations,
                i build ]
 
 i :: J.ClassReader M.SourceCode -> J.ClassReader M.SourceCode
-i = mapReader U.indent
+i = R.mapReader U.indent
 
 packageDeclaration :: J.ClassReader M.SourceCode
 packageDeclaration = do
-  (_, _, M.Package (Just packageName) _, _, _, _, _, _) <- ask
+  (_, _, M.Package (Just packageName) _, _, _, _, _, _) <- R.ask
   return $ "package " ++ packageName ++ ";\n"
 
 importsFromFieldType :: M.FieldType -> J.ClassReader [M.Import]
 importsFromFieldType fieldType = do
   needsImport <- J.needsImport fieldType
   if needsImport
-    then liftM (concatMap (\s -> [s, s ++ "Builder"])) (J.fqns fieldType)
+    then Monad.liftM (concatMap (\s -> [s, s ++ "Builder"])) (J.fqns fieldType)
     else case fieldType of
       M.List _              -> return ["java.util.List", "java.util.ArrayList"]
       M.Optional fieldType' -> do
@@ -56,12 +56,12 @@ importsFromFieldType fieldType = do
 
 classDeclaration :: J.ClassReader M.SourceCode
 classDeclaration = do
-  (_, _, _, className, _, _, _, _) <- ask
+  (_, _, _, className, _, _, _, _) <- R.ask
   return $ "public class " ++ className ++ "Builder {"
 
 fieldDeclarations :: J.ClassReader M.SourceCode
 fieldDeclarations = do
-  (_, _, _, _, _, _, _, fields) <- ask
+  (_, _, _, _, _, _, _, fields) <- R.ask
   declarations <- mapM fieldDeclaration fields
   return $ concat declarations
 
@@ -78,18 +78,18 @@ fieldDeclaration (M.Field fieldName fieldType) = do
 
 getters :: J.ClassReader M.SourceCode
 getters = do
-  (_, _, _, _, _, _, _, fields) <- ask
-  domainTypeFields <- filterM (\(M.Field _ fieldType) -> J.isDomainType fieldType) fields
-  return $ intercalate "\n" (map getter domainTypeFields)
+  (_, _, _, _, _, _, _, fields) <- R.ask
+  domainTypeFields <- Monad.filterM (\(M.Field _ fieldType) -> J.isDomainType fieldType) fields
+  return $ L.intercalate "\n" (map getter domainTypeFields)
 
 createDeclaration :: J.ClassReader M.SourceCode
 createDeclaration = do
-  (_, _, _, className, _, _, _, _) <- ask
+  (_, _, _, className, _, _, _, _) <- R.ask
   return $ "public static " ++ className ++ "Builder create() " ++ block ("return new " ++ className ++ "Builder();")
 
 fromDeclaration :: J.ClassReader M.SourceCode
 fromDeclaration = do
-  (_, _, _, className, _, _, _, fields) <- ask
+  (_, _, _, className, _, _, _, fields) <- R.ask
   return $ "public static " ++ className ++ "Builder from(" ++ className ++ " " ++ U.downcase className ++ ") " ++
     block (
       "return new " ++ className ++ "Builder()" ++
@@ -103,9 +103,9 @@ setFieldInFromDeclaration className (M.Field fieldName fieldType) =
 
 setters :: J.ClassReader M.SourceCode
 setters = do
-  (_, _, _, _, _, _, _, fields) <- ask
+  (_, _, _, _, _, _, _, fields) <- R.ask
   setters' <- mapM setter fields
-  return $ intercalate "\n" setters'
+  return $ L.intercalate "\n" setters'
 
 getter :: M.Field -> M.SourceCode
 getter (M.Field fieldName fieldType) =
@@ -114,7 +114,7 @@ getter (M.Field fieldName fieldType) =
 
 setter :: M.Field -> J.ClassReader M.SourceCode
 setter field@(M.Field fieldName fieldType) = do
-  (_, _, _, className, _, _, _, _) <- ask
+  (_, _, _, className, _, _, _, _) <- R.ask
   domainType <- J.isDomainType fieldType
   let pb = "public " ++ className ++ "Builder "
       fn = fieldName
@@ -160,12 +160,12 @@ getOrIs fieldType = case fieldType of
 
 build :: J.ClassReader M.SourceCode
 build = do
-  (_, _, _, className, _, _, _, fields) <- ask
+  (_, _, _, className, _, _, _, fields) <- R.ask
   fieldsPart <- mapM buildField fields
   return $ "public " ++ className ++ " build() {\n" ++
     U.indent
       (("return new " ++ className ++ "(\n" ++
-      U.indent (intercalate ",\n" fieldsPart)
+      U.indent (L.intercalate ",\n" fieldsPart)
       ) ++
     ");\n") ++ "}"
 
