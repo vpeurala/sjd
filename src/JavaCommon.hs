@@ -5,7 +5,7 @@ import Data.List (nub)
 
 import qualified Model as M
 
-type ClassReader a = Reader (Generator, M.Codebase, M.Package, M.ClassName) a
+type ClassReader a = Reader (Generator, M.Codebase, M.Package, M.ClassName, [M.Import], Maybe M.Extends, M.Implements, [M.Field]) a
 
 data Generator = ClassSpecificGenerator {
                    generateSourceForClass :: Generator -> M.Codebase -> M.Package -> M.Class -> M.JavaSource,
@@ -36,13 +36,13 @@ javaize fieldType = case fieldType of
 
 isDomainType :: M.FieldType -> ClassReader Bool
 isDomainType (M.Object className) = do
-  (_, M.Codebase packages, _, _) <- ask
+  (_, M.Codebase packages, _, _, _, _, _, _) <- ask
   return $ any (\(M.Package _ classes) -> any (\(M.Class _ name _ _ _) -> name == className) classes) packages
 isDomainType _ = return False
 
 packagesForClass :: M.FieldType -> ClassReader [M.Package]
 packagesForClass (M.Object className) = do
-  (_, M.Codebase packages, _, _) <- ask
+  (_, M.Codebase packages, _, _, _, _, _, _) <- ask
   return $ filter (\(M.Package _ classes) -> any (\(M.Class _ name _ _ _) -> name == className) classes) packages
 packagesForClass _ = error "This should be unreachable code"
 
@@ -54,21 +54,22 @@ fqns _ = error "This should be unreachable code"
 
 needsImport :: M.FieldType -> ClassReader Bool
 needsImport ft = do
-  (_, _, package, _) <- ask
+  (_, _, package, _, _, _, _, _) <- ask
   isDomainType' <- isDomainType ft
   packagesForClass' <- packagesForClass ft
   let isInDifferentPackage' = package `notElem` packagesForClass'
   return (isDomainType' && isInDifferentPackage')
 
 -- TODO vpeurala 9.12.2015: Use maybeExtends and implements
-importDeclarations :: [M.Import] -> Maybe M.Extends -> M.Implements -> [M.Field] -> ClassReader M.SourceCode
-importDeclarations imports maybeExtends implements fields = do
+importDeclarations :: ClassReader M.SourceCode
+importDeclarations = do
+  (_, _, _, _, imports, maybeExtends, implements, fields) <- ask
   calculatedImports <- calculateImportsFromFields fields
   let allImports = imports ++ calculatedImports
     in return $ concatMap (\imp -> "import " ++ imp ++ ";\n") allImports
 
 calculateImportsFromFields :: [M.Field] -> ClassReader [M.Import]
 calculateImportsFromFields fields = do
-  (generator, _, _, _) <- ask
+  (generator, _, _, _, _, _, _, _) <- ask
   importsFromFields <- mapM (importsFromFieldType generator . (\(M.Field _ fieldType) -> fieldType)) fields
   return $ nub $ [ "java.util.Objects", "com.fasterxml.jackson.annotation.JsonCreator", "com.fasterxml.jackson.annotation.JsonProperty" ] ++ concat importsFromFields

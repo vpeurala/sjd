@@ -13,7 +13,7 @@ generateJavaClass :: J.Generator -> M.Codebase -> M.Package -> M.Class -> JavaSo
 generateJavaClass generator codebase package@(M.Package (Just packageName) _) (M.Class imports className maybeExtends implements fields) =
   JavaSource (packageName ++ "." ++ className) sourceCode
   where sourceCode = packageDeclaration packageName ++
-                     runReader (J.importDeclarations imports maybeExtends implements fields) (generator, codebase, package, className) ++
+                     runReader J.importDeclarations (generator, codebase, package, className, imports, maybeExtends, implements, fields) ++
                      "\n" ++
                      classDeclaration className maybeExtends implements ++
                      indent (fieldDeclarations fields) ++
@@ -29,7 +29,7 @@ generateJavaClass generator codebase package@(M.Package (Just packageName) _) (M
                      "}"
 generateJavaClass generator codebase package@(M.Package Nothing _) (M.Class imports className maybeExtends implements fields) =
   JavaSource className sourceCode
-  where sourceCode = runReader (J.importDeclarations imports maybeExtends implements fields) (generator, codebase, package, className) ++
+  where sourceCode = runReader J.importDeclarations (generator, codebase, package, className, imports, maybeExtends, implements, fields) ++
                      "\n" ++
                      classDeclaration className maybeExtends implements ++
                      indent (fieldDeclarations fields) ++
