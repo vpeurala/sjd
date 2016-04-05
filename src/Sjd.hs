@@ -1,24 +1,24 @@
 module Sjd (runMain, test1) where
 
-import Parser as P
+import qualified Parser as P
 import Model as M
 import Transform as T
 import JavaCommon as JC
 import JavaGenerator as JG
 import JavaBuilderGenerator as JBG
 
-import Data.Either
 import Data.List (intercalate)
 import Data.List.Split
 import Text.ParserCombinators.Parsec
 import System.Directory (createDirectoryIfMissing)
 import System.Environment (getArgs)
 
-parseFile :: String -> IO (Either ParseError CodebaseDeclaration)
+parseFile :: String -> IO (Either ParseError P.CodebaseDeclaration)
 parseFile fileName = do
   content <- readFile fileName
   return $ P.parseCodebase content
 
+runMain :: IO ()
 runMain = do
   args <- getArgs
   parseResult <- parseFile (head args)
@@ -50,7 +50,8 @@ fqnToFile fqn =
   let ds = splitOn "." fqn
   in  intercalate "/" ds
 
+test1 :: IO Codebase
 test1 = do
-  p <- parseFile "test/1.sjd"
+  p <- parseFile "test/customer.sjd"
   let (Right pp) = p
   return $ transform pp
