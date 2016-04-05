@@ -12,12 +12,12 @@ generateJavaClass :: J.Generator -> M.Codebase -> M.Package -> M.Class -> M.Java
 generateJavaClass generator codebase package@(M.Package (Just packageName) _) klass@(M.Class _ className _ _ _) =
   M.JavaSource (packageName ++ "." ++ className) sourceCode
   where sourceCode       = U.separateNonBlanksWithNewline sourceOfParts ++ "}"
-        sourceOfParts    = map (\p -> R.runReader p (J.ClassReaderEnv generator codebase package klass)) parts
+        sourceOfParts    = map (`R.runReader` J.ClassReaderEnv generator codebase package klass) parts
         parts            = packageDeclaration : basicParts
 generateJavaClass generator codebase package@(M.Package Nothing _) klass@(M.Class _ className _ _ _) =
   M.JavaSource className sourceCode
   where sourceCode       = U.separateNonBlanksWithNewline sourceOfParts ++ "}"
-        sourceOfParts    = map (\p -> R.runReader p (J.ClassReaderEnv generator codebase package klass)) parts
+        sourceOfParts    = map (`R.runReader` J.ClassReaderEnv generator codebase package klass) parts
         parts            = basicParts
 
 basicParts :: [J.ClassReader M.SourceCode]
