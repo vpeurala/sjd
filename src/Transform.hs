@@ -1,20 +1,20 @@
 module Transform where
 
-import Parser as P
-import Model as M
+import qualified Parser as P
+import qualified Model as M
 
 import Data.List (isPrefixOf)
 import Data.List.Split (splitOneOf)
 
 transform :: P.CodebaseDeclaration -> M.Codebase
-transform (CodebaseDeclaration packageOrClassDeclarations) =
-  Codebase $ map declarationToPackage groupedPackages
+transform (P.CodebaseDeclaration packageOrClassDeclarations) =
+  M.Codebase $ map declarationToPackage groupedPackages
   where groupedPackages = groupPackages packageOrClassDeclarations
 
 declarationToPackage :: (Maybe P.PackageDeclaration, [P.ClassDeclaration]) -> M.Package
 declarationToPackage (Nothing, classDeclarations) =
   M.Package Nothing $ map declarationToClass classDeclarations
-declarationToPackage (Just (PackageDeclaration packageName), classDeclarations) =
+declarationToPackage (Just (P.PackageDeclaration packageName), classDeclarations) =
   M.Package (Just packageName) $ map declarationToClass classDeclarations
 
 groupPackages :: [P.PackageOrClassDeclaration] -> [(Maybe P.PackageDeclaration, [P.ClassDeclaration])]
@@ -39,17 +39,17 @@ declarationToField (P.FieldDeclaration fieldName fieldType) =
 
 declarationToFieldType :: String -> M.FieldType
 declarationToFieldType f = case f of
-  "boolean"                      -> Boolean
-  "byte"                         -> Byte
-  "short"                        -> Short
-  "char"                         -> Char
-  "int"                          -> Int
-  "long"                         -> Long
-  "float"                        -> Float
-  "double"                       -> Double
-  _ | "List<"     `isPrefixOf` f -> List $ declarationToFieldType $ extractTypeParam f
-  _ | "Optional<" `isPrefixOf` f -> Optional $ declarationToFieldType $ extractTypeParam f
-  _                              -> Object f
+  "boolean"                      -> M.Boolean
+  "byte"                         -> M.Byte
+  "short"                        -> M.Short
+  "char"                         -> M.Char
+  "int"                          -> M.Int
+  "long"                         -> M.Long
+  "float"                        -> M.Float
+  "double"                       -> M.Double
+  _ | "List<"     `isPrefixOf` f -> M.List $ declarationToFieldType $ extractTypeParam f
+  _ | "Optional<" `isPrefixOf` f -> M.Optional $ declarationToFieldType $ extractTypeParam f
+  _                              -> M.Object f
 
-extractTypeParam :: TypeName -> TypeName
+extractTypeParam :: M.TypeName -> M.TypeName
 extractTypeParam tn = splitOneOf "<>" tn !! 1
