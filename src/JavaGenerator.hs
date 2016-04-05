@@ -10,10 +10,10 @@ import Model as M
 import Util as U
 
 generateJavaClass :: J.Generator -> M.Codebase -> M.Package -> M.Class -> JavaSource
-generateJavaClass generator codebase package@(M.Package (Just packageName) _) (M.Class imports className maybeExtends implements fields) =
+generateJavaClass generator codebase package@(M.Package (Just packageName) _) klass@(M.Class imports className maybeExtends implements fields) =
   JavaSource (packageName ++ "." ++ className) sourceCode
   where sourceCode = packageDeclaration packageName ++
-                     runReader J.importDeclarations (generator, codebase, package, className, imports, maybeExtends, implements, fields) ++
+                     runReader J.importDeclarations (J.ClassReaderEnv generator codebase package klass) ++
                      "\n" ++
                      classDeclaration className maybeExtends implements ++
                      indent (fieldDeclarations fields) ++
@@ -27,9 +27,9 @@ generateJavaClass generator codebase package@(M.Package (Just packageName) _) (M
                      "\n" ++
                      indent (hashCode fields) ++
                      "}"
-generateJavaClass generator codebase package@(M.Package Nothing _) (M.Class imports className maybeExtends implements fields) =
+generateJavaClass generator codebase package@(M.Package Nothing _) klass@(M.Class imports className maybeExtends implements fields) =
   JavaSource className sourceCode
-  where sourceCode = runReader J.importDeclarations (generator, codebase, package, className, imports, maybeExtends, implements, fields) ++
+  where sourceCode = runReader J.importDeclarations (J.ClassReaderEnv generator codebase package klass) ++
                      "\n" ++
                      classDeclaration className maybeExtends implements ++
                      indent (fieldDeclarations fields) ++
