@@ -79,9 +79,15 @@ fieldDeclaration (M.Field fieldName fieldType) = "private final " ++ J.javaize f
 
 constructorDeclaration :: J.ClassReader M.SourceCode
 constructorDeclaration = do
-  M.Class _ className _ _ fields <- R.asks J.getClass
+  klass@(M.Class _ className _ _ fields) <- R.asks J.getClass
+  superClassFields <- J.getSuperClassFields klass
+  allFields <- J.getAllFields klass
   return $ "@JsonCreator\n" ++
-    "public " ++ className ++ "(" ++ intercalate (",\n" ++ replicate (length ("public " ++ className ++ "(")) ' ') (map (\(M.Field fieldName fieldType) -> "@JsonProperty(\"" ++ fieldName ++ "\") " ++ J.javaize fieldType ++ " " ++ fieldName) fields) ++ ") {\n" ++
+    "public " ++ className ++ "(" ++ intercalate (",\n" ++ replicate (length ("public " ++ className ++ "(")) ' ') (map (\(M.Field fieldName fieldType) -> "@JsonProperty(\"" ++ fieldName ++ "\") " ++ J.javaize fieldType ++ " " ++ fieldName) allFields) ++ ") {\n" ++
+    case superClassFields of
+      []   -> ""
+      scfs -> U.indent $ "super(" ++ intercalate ", " (map (\(M.Field fieldName _) -> fieldName) scfs) ++ ");\n"
+    ++
     U.indent (concatMap (\(M.Field fieldName _) -> "Objects.requireNonNull(" ++ fieldName ++ ", \"Property '" ++ fieldName ++ "' cannot be null.\");\n") fields) ++
     U.indent (concatMap (\(M.Field fieldName _) -> "this." ++ fieldName ++ " = " ++ fieldName ++ ";\n") fields) ++
     "}\n"
@@ -103,16 +109,18 @@ getOrIs fieldType = case fieldType of
 
 toString :: J.ClassReader M.SourceCode
 toString = do
-  M.Class _ className _ _ fields <- R.asks J.getClass
+  klass@(M.Class _ className _ _ _) <- R.asks J.getClass
+  allFields <- J.getAllFields klass
   return $ "@Override\npublic String toString() {\n" ++
     U.indent ("return \"" ++ className ++ "@\" + System.identityHashCode(this) + \": {\"\n" ++
-      U.indent (concatMap (\(M.Field fieldName _) -> "+ \"" ++ fieldName ++ " = '\" + " ++ fieldName ++ " + \"'\"\n") fields) ++
+      U.indent (concatMap (\(M.Field fieldName _) -> "+ \"" ++ fieldName ++ " = '\" + " ++ fieldName ++ " + \"'\"\n") allFields) ++
       ";\n") ++
     "}\n"
 
 equals :: J.ClassReader M.SourceCode
 equals = do
-  M.Class _ className _ _ fields <- R.asks J.getClass
+  klass@(M.Class _ className _ _ _) <- R.asks J.getClass
+  allFields <- J.getAllFields klass
   return $ "@Override\npublic boolean equals(Object o) {\n" ++
     U.indent (
       "if (this == o) return true;\n" ++
@@ -125,14 +133,15 @@ equals = do
             "if (this." ++ fieldName ++ " != that." ++ fieldName ++ ") return false;\n"
           else
             "if (!this." ++ fieldName ++ ".equals(that." ++ fieldName ++ ")) return false;\n"
-        ) fields ++
+        ) allFields ++
       "return true;\n"
     ) ++
     "}\n"
 
 hashCode :: J.ClassReader M.SourceCode
 hashCode = do
-  M.Class _ _ _ _ fields <- R.asks J.getClass
+  klass <- R.asks J.getClass
+  allFields <- J.getAllFields klass
   return $ "@Override\npublic int hashCode() {\n" ++
     U.indent (
       "int result = 0;\n" ++
@@ -144,7 +153,7 @@ hashCode = do
           M.Boolean                     -> "result = 31 * result + (" ++ fieldName ++ " ? 1 : 0);\n"
           _ | M.isPrimitive fieldType -> "result = 31 * result + " ++ fieldName ++ ";\n"
           _                           -> "result = 31 * result + " ++ fieldName ++ ".hashCode();\n"
-        ) fields
+        ) allFields
       ) ++
     U.indent "return result;\n" ++
     "}\n"

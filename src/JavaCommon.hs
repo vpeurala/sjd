@@ -1,7 +1,7 @@
 module JavaCommon where
 
 import Control.Monad.Reader
-import Data.List (nub)
+import Data.List (find, nub)
 
 import qualified Model as M
 
@@ -44,9 +44,30 @@ javaize fieldType = case fieldType of
 
 isDomainType :: M.FieldType -> ClassReader Bool
 isDomainType (M.Object className) = do
-  M.Codebase packages  <- asks getCodebase
+  M.Codebase packages <- asks getCodebase
   return $ any (\(M.Package _ classes) -> any (\(M.Class _ name _ _ _) -> name == className) classes) packages
 isDomainType _ = return False
+
+findDomainClass :: M.ClassName -> ClassReader (Maybe M.Class)
+findDomainClass searchedClassName = do
+  M.Codebase packages <- asks getCodebase
+  let allClasses = concatMap (\(M.Package _ classes) -> classes) packages
+  return $ find (\(M.Class _ className _ _ _) -> className == searchedClassName) allClasses
+
+getAllFields :: M.Class -> ClassReader [M.Field]
+getAllFields klass@(M.Class _ _ _ _ fields) = do
+  allSuperClassFields <- getSuperClassFields klass
+  return $ allSuperClassFields ++ fields
+
+getSuperClassFields :: M.Class -> ClassReader [M.Field]
+getSuperClassFields (M.Class _ _ maybeExtends _ _) =
+  case maybeExtends of
+    Just superClassName -> do
+      superClass <- findDomainClass superClassName
+      case superClass of
+        (Just superClass') -> getAllFields superClass'
+        Nothing            -> return []
+    Nothing             -> return []
 
 packagesForClass :: M.FieldType -> ClassReader [M.Package]
 packagesForClass (M.Object className) = do
