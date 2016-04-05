@@ -15,7 +15,7 @@ class Item
   uid: String
   itemId: long
 
-class Specials
+class Specials extends Product
   booleanField: boolean
   byteField: byte
   charField: char
