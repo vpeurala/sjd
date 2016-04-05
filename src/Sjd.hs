@@ -28,8 +28,8 @@ runMain = do
 
 process :: M.Codebase -> IO ()
 process codebase =
-  let javaSources = JC.generate (ClassSpecificGenerator JG.generateJavaClass JG.importsFromFieldType) codebase
-      builderSources = JC.generate (ClassSpecificGenerator JBG.generateJavaClass JBG.importsFromFieldType) codebase
+  let javaSources = JC.generate (ClassSpecificGenerator JG.generateJavaClass JG.importsFromFieldType JG.classImports) codebase
+      builderSources = JC.generate (ClassSpecificGenerator JBG.generateJavaClass JBG.importsFromFieldType JBG.classImports) codebase
   in  do
       mapM_ (\(JavaSource fqn sourceCode) -> do
         createDirectoryIfMissing True ("src/main/java/" ++ fqnToPackageDir fqn)

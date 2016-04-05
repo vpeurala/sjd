@@ -16,7 +16,8 @@ type ClassReader a = Reader ClassReaderEnv a
 
 data Generator = ClassSpecificGenerator {
                    generateSourceForClass :: Generator -> M.Codebase -> M.Package -> M.Class -> M.JavaSource,
-                   importsFromFieldType :: M.FieldType -> ClassReader [M.Import]
+                   importsFromFieldType :: M.FieldType -> ClassReader [M.Import],
+                   classImports :: ClassReader [M.Import]
                  }
 
 generate :: Generator -> M.Codebase -> [M.JavaSource]
@@ -70,13 +71,15 @@ needsImport ft = do
 -- TODO vpeurala 9.12.2015: Use maybeExtends and implements
 importDeclarations :: ClassReader M.SourceCode
 importDeclarations = do
+  generator <- asks getGenerator
   M.Class imports _ _ _ fields <- asks getClass
   calculatedImports <- calculateImportsFromFields fields
-  let allImports = imports ++ calculatedImports
-    in return $ concatMap (\imp -> "import " ++ imp ++ ";\n") allImports
+  classImports' <- classImports generator
+  let allImports = nub $ imports ++ calculatedImports ++ classImports'
+  return $ concatMap (\imp -> "import " ++ imp ++ ";\n") allImports
 
 calculateImportsFromFields :: [M.Field] -> ClassReader [M.Import]
 calculateImportsFromFields fields = do
   generator <- asks getGenerator
   importsFromFields <- mapM (importsFromFieldType generator . (\(M.Field _ fieldType) -> fieldType)) fields
-  return . nub $ [ "java.util.Objects", "com.fasterxml.jackson.annotation.JsonCreator", "com.fasterxml.jackson.annotation.JsonProperty" ] ++ concat importsFromFields
+  return $ concat importsFromFields

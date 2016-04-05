@@ -1,4 +1,4 @@
-module JavaBuilderGenerator (generateJavaClass, importsFromFieldType) where
+module JavaBuilderGenerator (generateJavaClass, importsFromFieldType, classImports) where
 
 import qualified Control.Monad as Monad
 import qualified Control.Monad.Reader as R
@@ -174,3 +174,7 @@ buildField (M.Field fieldName fieldType) = do
 
 block :: M.SourceCode -> M.SourceCode
 block sc = "{\n" ++ U.indent sc ++ "}\n"
+
+classImports :: J.ClassReader [M.Import]
+classImports =
+  return [ "java.util.Objects" ]

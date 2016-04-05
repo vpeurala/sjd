@@ -1,4 +1,4 @@
-module JavaGenerator (generateJavaClass, importsFromFieldType) where
+module JavaGenerator (generateJavaClass, importsFromFieldType, classImports) where
 
 import Control.Monad.Reader
 import Data.List (intercalate)
@@ -145,3 +145,9 @@ hashCode fields = "@Override\npublic int hashCode() {\n" ++
     ) ++
   indent "return result;\n" ++
   "}\n"
+
+classImports :: J.ClassReader [M.Import]
+classImports =
+  return [ "java.util.Objects",
+           "com.fasterxml.jackson.annotation.JsonCreator",
+           "com.fasterxml.jackson.annotation.JsonProperty"]
