@@ -48,6 +48,7 @@ importsFromFieldType fieldType = do
       M.Object className    -> return $ case className of
         "LocalDate"                       -> ["java.time.LocalDate"]
         "LocalDateTime"                   -> ["java.time.LocalDateTime"]
+        "BigDecimal"                      -> ["java.math.BigDecimal"]
         _                                 -> []
       _                   -> return []
 

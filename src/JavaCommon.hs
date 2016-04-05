@@ -93,8 +93,9 @@ needsImport ft = do
 importDeclarations :: ClassReader M.SourceCode
 importDeclarations = do
   generator <- asks getGenerator
-  M.Class imports _ _ _ fields <- asks getClass
-  calculatedImports <- calculateImportsFromFields fields
+  klass@(M.Class imports _ _ _ _) <- asks getClass
+  allFields <- getAllFields klass
+  calculatedImports <- calculateImportsFromFields allFields
   classImports' <- classImports generator
   let allImports = nub $ imports ++ calculatedImports ++ classImports'
   return $ concatMap (\imp -> "import " ++ imp ++ ";\n") allImports

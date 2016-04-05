@@ -28,3 +28,6 @@ class Specials extends Product
   listField: List<String>
   optionalField: Optional<String>
   objectField: Object
+
+class SubSpecials extends Specials
+  value: BigDecimal
