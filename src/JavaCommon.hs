@@ -70,7 +70,7 @@ needsImport ft = do
 -- TODO vpeurala 9.12.2015: Use maybeExtends and implements
 importDeclarations :: ClassReader M.SourceCode
 importDeclarations = do
-  M.Class imports className maybeExtends implements fields <- asks getClass
+  M.Class imports _ _ _ fields <- asks getClass
   calculatedImports <- calculateImportsFromFields fields
   let allImports = imports ++ calculatedImports
     in return $ concatMap (\imp -> "import " ++ imp ++ ";\n") allImports

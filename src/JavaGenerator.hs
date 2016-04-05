@@ -1,16 +1,14 @@
 module JavaGenerator (generateJavaClass, importsFromFieldType) where
 
 import Control.Monad.Reader
-import Data.Char (toUpper)
-import Data.List (intercalate, intersperse, isPrefixOf, nub)
-import Data.Maybe (catMaybes)
+import Data.List (intercalate)
 
 import qualified JavaCommon as J
 import Model as M
 import Util as U
 
 generateJavaClass :: J.Generator -> M.Codebase -> M.Package -> M.Class -> JavaSource
-generateJavaClass generator codebase package@(M.Package (Just packageName) _) klass@(M.Class imports className maybeExtends implements fields) =
+generateJavaClass generator codebase package@(M.Package (Just packageName) _) klass@(M.Class _ className maybeExtends implements fields) =
   JavaSource (packageName ++ "." ++ className) sourceCode
   where sourceCode = packageDeclaration packageName ++
                      runReader J.importDeclarations (J.ClassReaderEnv generator codebase package klass) ++
@@ -27,7 +25,7 @@ generateJavaClass generator codebase package@(M.Package (Just packageName) _) kl
                      "\n" ++
                      indent (hashCode fields) ++
                      "}"
-generateJavaClass generator codebase package@(M.Package Nothing _) klass@(M.Class imports className maybeExtends implements fields) =
+generateJavaClass generator codebase package@(M.Package Nothing _) klass@(M.Class _ className maybeExtends implements fields) =
   JavaSource className sourceCode
   where sourceCode = runReader J.importDeclarations (J.ClassReaderEnv generator codebase package klass) ++
                      "\n" ++
@@ -53,7 +51,7 @@ importsFromFieldType fieldType = do
   if needsImport
     then J.fqns fieldType
     else case fieldType of
-      List fieldType'     -> return ["java.util.List"]
+      List _              -> return ["java.util.List"]
       Optional fieldType' -> do
         importsFromFieldType' <- importsFromFieldType fieldType'
         return $ "java.util.Optional" : importsFromFieldType'
@@ -88,7 +86,7 @@ fieldDeclaration (M.Field fieldName fieldType) = "private final " ++ J.javaize f
 constructorDeclaration :: ClassName -> [M.Field] -> SourceCode
 constructorDeclaration className fields =
   "@JsonCreator\n" ++
-  "public " ++ className ++ "(" ++ intercalate (",\n" ++ (replicate (length ("public " ++ className ++ "(")) ' ')) (map (\(M.Field fieldName fieldType) -> "@JsonProperty(\"" ++ fieldName ++ "\") " ++ J.javaize fieldType ++ " " ++ fieldName) fields) ++ ") {\n" ++
+  "public " ++ className ++ "(" ++ intercalate (",\n" ++ replicate (length ("public " ++ className ++ "(")) ' ') (map (\(M.Field fieldName fieldType) -> "@JsonProperty(\"" ++ fieldName ++ "\") " ++ J.javaize fieldType ++ " " ++ fieldName) fields) ++ ") {\n" ++
   indent (concatMap (\(M.Field fieldName _) -> "Objects.requireNonNull(" ++ fieldName ++ ", \"Property '" ++ fieldName ++ "' cannot be null.\");\n") fields) ++
   indent (concatMap (\(M.Field fieldName _) -> "this." ++ fieldName ++ " = " ++ fieldName ++ ";\n") fields) ++
   "}\n\n"
