@@ -29,9 +29,7 @@ basicParts = [ J.importDeclarations,
                i getters,
                i setters,
                i build ]
-
-i :: J.ClassReader M.SourceCode -> J.ClassReader M.SourceCode
-i = R.mapReader U.indent
+             where i = R.mapReader U.indent
 
 packageDeclaration :: J.ClassReader M.SourceCode
 packageDeclaration = do
