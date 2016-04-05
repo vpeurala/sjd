@@ -1,6 +1,6 @@
 module JavaGenerator (generateJavaClass, importsFromFieldType, classImports) where
 
-import Control.Monad.Reader
+import qualified Control.Monad.Reader as R
 import Data.List (intercalate)
 
 import qualified JavaCommon as J
@@ -8,42 +8,32 @@ import qualified Model as M
 import qualified Util as U
 
 generateJavaClass :: J.Generator -> M.Codebase -> M.Package -> M.Class -> M.JavaSource
-generateJavaClass generator codebase package@(M.Package (Just packageName) _) klass@(M.Class _ className maybeExtends implements fields) =
+generateJavaClass generator codebase package@(M.Package (Just packageName) _) klass@(M.Class _ className _ _ _) =
   M.JavaSource (packageName ++ "." ++ className) sourceCode
-  where sourceCode = packageDeclaration packageName ++
-                     runReader J.importDeclarations (J.ClassReaderEnv generator codebase package klass) ++
-                     "\n" ++
-                     classDeclaration className maybeExtends implements ++
-                     U.indent (fieldDeclarations fields) ++
-                     "\n" ++
-                     U.indent (constructorDeclaration className fields) ++
-                     U.indent (getters fields) ++
-                     "\n" ++
-                     U.indent (toString className fields) ++
-                     "\n" ++
-                     U.indent (equals className fields) ++
-                     "\n" ++
-                     U.indent (hashCode fields) ++
-                     "}"
-generateJavaClass generator codebase package@(M.Package Nothing _) klass@(M.Class _ className maybeExtends implements fields) =
+  where sourceCode       = U.separateNonBlanksWithNewline sourceOfParts ++ "}"
+        sourceOfParts    = map (`R.runReader` J.ClassReaderEnv generator codebase package klass) parts
+        parts            = packageDeclaration : basicParts
+generateJavaClass generator codebase package@(M.Package Nothing _) klass@(M.Class _ className _ _ _) =
   M.JavaSource className sourceCode
-  where sourceCode = runReader J.importDeclarations (J.ClassReaderEnv generator codebase package klass) ++
-                     "\n" ++
-                     classDeclaration className maybeExtends implements ++
-                     U.indent (fieldDeclarations fields) ++
-                     "\n" ++
-                     U.indent (constructorDeclaration className fields) ++
-                     U.indent (getters fields) ++
-                     "\n" ++
-                     U.indent (toString className fields) ++
-                     "\n" ++
-                     U.indent (equals className fields) ++
-                     "\n" ++
-                     U.indent (hashCode fields) ++
-                     "}"
+  where sourceCode       = U.separateNonBlanksWithNewline sourceOfParts ++ "}"
+        sourceOfParts    = map (`R.runReader` J.ClassReaderEnv generator codebase package klass) parts
+        parts            = basicParts
 
-packageDeclaration :: M.PackageName -> M.SourceCode
-packageDeclaration packageName = "package " ++ packageName ++ ";\n\n"
+basicParts :: [J.ClassReader M.SourceCode]
+basicParts = [ J.importDeclarations,
+               classDeclaration,
+               i fieldDeclarations,
+               i constructorDeclaration,
+               i getters,
+               i toString,
+               i equals,
+               i hashCode ]
+             where i = R.mapReader U.indent
+
+packageDeclaration :: J.ClassReader M.SourceCode
+packageDeclaration = do
+  M.Package (Just packageName) _ <- R.asks J.getPackage
+  return $ "package " ++ packageName ++ ";\n"
 
 importsFromFieldType :: M.FieldType -> J.ClassReader [M.Import]
 importsFromFieldType fieldType = do
@@ -61,11 +51,13 @@ importsFromFieldType fieldType = do
         _                                 -> []
       _                   -> return []
 
-classDeclaration :: M.ClassName -> Maybe M.Extends -> M.Implements -> M.SourceCode
-classDeclaration className extends implements = "public class " ++ className ++ " " ++
-  extendsDeclaration extends ++
-  implementsDeclaration implements ++
-  "{\n"
+classDeclaration :: J.ClassReader M.SourceCode
+classDeclaration = do
+  M.Class _ className extends implements _ <- R.asks J.getClass
+  return $ "public class " ++ className ++ " " ++
+    extendsDeclaration extends ++
+    implementsDeclaration implements ++
+    "{"
 
 extendsDeclaration :: Maybe M.Extends -> M.SourceCode
 extendsDeclaration e = case e of
@@ -77,22 +69,27 @@ implementsDeclaration implements = if null implements
   then ""
   else "implements " ++ intercalate ", " implements ++ " "
 
-fieldDeclarations :: [M.Field] -> M.SourceCode
-fieldDeclarations = concatMap fieldDeclaration
+fieldDeclarations :: J.ClassReader M.SourceCode
+fieldDeclarations = do
+  M.Class _ _ _ _ fields <- R.asks J.getClass
+  return $ concatMap fieldDeclaration fields
 
 fieldDeclaration :: M.Field -> M.SourceCode
 fieldDeclaration (M.Field fieldName fieldType) = "private final " ++ J.javaize fieldType ++ " " ++ fieldName ++ ";\n"
 
-constructorDeclaration :: M.ClassName -> [M.Field] -> M.SourceCode
-constructorDeclaration className fields =
-  "@JsonCreator\n" ++
-  "public " ++ className ++ "(" ++ intercalate (",\n" ++ replicate (length ("public " ++ className ++ "(")) ' ') (map (\(M.Field fieldName fieldType) -> "@JsonProperty(\"" ++ fieldName ++ "\") " ++ J.javaize fieldType ++ " " ++ fieldName) fields) ++ ") {\n" ++
-  U.indent (concatMap (\(M.Field fieldName _) -> "Objects.requireNonNull(" ++ fieldName ++ ", \"Property '" ++ fieldName ++ "' cannot be null.\");\n") fields) ++
-  U.indent (concatMap (\(M.Field fieldName _) -> "this." ++ fieldName ++ " = " ++ fieldName ++ ";\n") fields) ++
-  "}\n\n"
+constructorDeclaration :: J.ClassReader M.SourceCode
+constructorDeclaration = do
+  M.Class _ className _ _ fields <- R.asks J.getClass
+  return $ "@JsonCreator\n" ++
+    "public " ++ className ++ "(" ++ intercalate (",\n" ++ replicate (length ("public " ++ className ++ "(")) ' ') (map (\(M.Field fieldName fieldType) -> "@JsonProperty(\"" ++ fieldName ++ "\") " ++ J.javaize fieldType ++ " " ++ fieldName) fields) ++ ") {\n" ++
+    U.indent (concatMap (\(M.Field fieldName _) -> "Objects.requireNonNull(" ++ fieldName ++ ", \"Property '" ++ fieldName ++ "' cannot be null.\");\n") fields) ++
+    U.indent (concatMap (\(M.Field fieldName _) -> "this." ++ fieldName ++ " = " ++ fieldName ++ ";\n") fields) ++
+    "}\n"
 
-getters :: [M.Field] -> M.SourceCode
-getters fields = intercalate "\n" (map getter fields)
+getters :: J.ClassReader M.SourceCode
+getters = do
+  M.Class _ _ _ _ fields <- R.asks J.getClass
+  return $ intercalate "\n" (map getter fields)
 
 getter :: M.Field -> M.SourceCode
 getter (M.Field fieldName fieldType) = "public " ++ J.javaize fieldType ++ " " ++ getOrIs fieldType ++ U.upcase fieldName ++ "() {\n" ++
@@ -104,47 +101,53 @@ getOrIs fieldType = case fieldType of
   M.Boolean -> "is"
   _       -> "get"
 
-toString :: M.ClassName -> [M.Field] -> M.SourceCode
-toString className fields = "@Override\npublic String toString() {\n" ++
-  U.indent ("return \"" ++ className ++ "@\" + System.identityHashCode(this) + \": {\"\n" ++
-    U.indent (concatMap (\(M.Field fieldName _) -> "+ \"" ++ fieldName ++ " = '\" + " ++ fieldName ++ " + \"'\"\n") fields) ++
-    ";\n") ++
-  "}\n"
+toString :: J.ClassReader M.SourceCode
+toString = do
+  M.Class _ className _ _ fields <- R.asks J.getClass
+  return $ "@Override\npublic String toString() {\n" ++
+    U.indent ("return \"" ++ className ++ "@\" + System.identityHashCode(this) + \": {\"\n" ++
+      U.indent (concatMap (\(M.Field fieldName _) -> "+ \"" ++ fieldName ++ " = '\" + " ++ fieldName ++ " + \"'\"\n") fields) ++
+      ";\n") ++
+    "}\n"
 
-equals :: M.ClassName -> [M.Field] -> M.SourceCode
-equals className fields = "@Override\npublic boolean equals(Object o) {\n" ++
-  U.indent (
-    "if (this == o) return true;\n" ++
-    "if (o == null) return false;\n" ++
-    "if (this.getClass() != o.getClass()) return false;\n" ++
-    className ++ " that = (" ++ className ++ ") o;\n" ++
-    concatMap (
-      \(M.Field fieldName fieldType) ->
-        if M.isPrimitive fieldType then
-          "if (this." ++ fieldName ++ " != that." ++ fieldName ++ ") return false;\n"
-        else
-          "if (!this." ++ fieldName ++ ".equals(that." ++ fieldName ++ ")) return false;\n"
-      ) fields ++
-    "return true;\n"
-  ) ++
-  "}\n"
-
-hashCode :: [M.Field] -> M.SourceCode
-hashCode fields = "@Override\npublic int hashCode() {\n" ++
-  U.indent (
-    "int result = 0;\n" ++
-    concatMap (
-      \(M.Field fieldName fieldType) -> case fieldType of
-        M.Long                        -> "result = 31 * Long.hashCode(" ++ fieldName ++ ");\n"
-        M.Float                       -> "result = 31 * Float.hashCode(" ++ fieldName ++ ");\n"
-        M.Double                      -> "result = 31 * Double.hashCode(" ++ fieldName ++ ");\n"
-        M.Boolean                     -> "result = 31 * result + (" ++ fieldName ++ " ? 1 : 0);\n"
-        _ | M.isPrimitive fieldType -> "result = 31 * result + " ++ fieldName ++ ";\n"
-        _                           -> "result = 31 * result + " ++ fieldName ++ ".hashCode();\n"
-      ) fields
+equals :: J.ClassReader M.SourceCode
+equals = do
+  M.Class _ className _ _ fields <- R.asks J.getClass
+  return $ "@Override\npublic boolean equals(Object o) {\n" ++
+    U.indent (
+      "if (this == o) return true;\n" ++
+      "if (o == null) return false;\n" ++
+      "if (this.getClass() != o.getClass()) return false;\n" ++
+      className ++ " that = (" ++ className ++ ") o;\n" ++
+      concatMap (
+        \(M.Field fieldName fieldType) ->
+          if M.isPrimitive fieldType then
+            "if (this." ++ fieldName ++ " != that." ++ fieldName ++ ") return false;\n"
+          else
+            "if (!this." ++ fieldName ++ ".equals(that." ++ fieldName ++ ")) return false;\n"
+        ) fields ++
+      "return true;\n"
     ) ++
-  U.indent "return result;\n" ++
-  "}\n"
+    "}\n"
+
+hashCode :: J.ClassReader M.SourceCode
+hashCode = do
+  M.Class _ _ _ _ fields <- R.asks J.getClass
+  return $ "@Override\npublic int hashCode() {\n" ++
+    U.indent (
+      "int result = 0;\n" ++
+      concatMap (
+        \(M.Field fieldName fieldType) -> case fieldType of
+          M.Long                        -> "result = 31 * Long.hashCode(" ++ fieldName ++ ");\n"
+          M.Float                       -> "result = 31 * Float.hashCode(" ++ fieldName ++ ");\n"
+          M.Double                      -> "result = 31 * Double.hashCode(" ++ fieldName ++ ");\n"
+          M.Boolean                     -> "result = 31 * result + (" ++ fieldName ++ " ? 1 : 0);\n"
+          _ | M.isPrimitive fieldType -> "result = 31 * result + " ++ fieldName ++ ";\n"
+          _                           -> "result = 31 * result + " ++ fieldName ++ ".hashCode();\n"
+        ) fields
+      ) ++
+    U.indent "return result;\n" ++
+    "}\n"
 
 classImports :: J.ClassReader [M.Import]
 classImports =
