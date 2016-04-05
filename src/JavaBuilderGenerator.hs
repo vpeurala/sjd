@@ -59,8 +59,9 @@ classDeclaration = do
 
 fieldDeclarations :: J.ClassReader M.SourceCode
 fieldDeclarations = do
-  M.Class _ _ _ _ fields <- R.asks J.getClass
-  declarations <- mapM fieldDeclaration fields
+  klass <- R.asks J.getClass
+  allFields <- J.getAllFields klass
+  declarations <- mapM fieldDeclaration allFields
   return $ concat declarations
 
 fieldDeclaration :: M.Field -> J.ClassReader M.SourceCode
@@ -76,8 +77,9 @@ fieldDeclaration (M.Field fieldName fieldType) = do
 
 getters :: J.ClassReader M.SourceCode
 getters = do
-  M.Class _ _ _ _ fields <- R.asks J.getClass
-  domainTypeFields <- Monad.filterM (\(M.Field _ fieldType) -> J.isDomainType fieldType) fields
+  klass <- R.asks J.getClass
+  allFields <- J.getAllFields klass
+  domainTypeFields <- Monad.filterM (\(M.Field _ fieldType) -> J.isDomainType fieldType) allFields
   return $ L.intercalate "\n" (map getter domainTypeFields)
 
 createDeclaration :: J.ClassReader M.SourceCode
@@ -87,11 +89,12 @@ createDeclaration = do
 
 fromDeclaration :: J.ClassReader M.SourceCode
 fromDeclaration = do
-  M.Class _ className _ _ fields <- R.asks J.getClass
+  klass@(M.Class _ className _ _ _) <- R.asks J.getClass
+  allFields <- J.getAllFields klass
   return $ "public static " ++ className ++ "Builder from(" ++ className ++ " " ++ U.downcase className ++ ") " ++
     block (
       "return new " ++ className ++ "Builder()" ++
-      concatMap (setFieldInFromDeclaration className) fields ++
+      concatMap (setFieldInFromDeclaration className) allFields ++
       ";"
     )
 
@@ -101,8 +104,9 @@ setFieldInFromDeclaration className (M.Field fieldName fieldType) =
 
 setters :: J.ClassReader M.SourceCode
 setters = do
-  M.Class _ _ _ _ fields <- R.asks J.getClass
-  setters' <- mapM setter fields
+  klass <- R.asks J.getClass
+  allFields <- J.getAllFields klass
+  setters' <- mapM setter allFields
   return $ L.intercalate "\n" setters'
 
 getter :: M.Field -> M.SourceCode
@@ -158,8 +162,9 @@ getOrIs fieldType = case fieldType of
 
 build :: J.ClassReader M.SourceCode
 build = do
-  M.Class _ className _ _ fields <- R.asks J.getClass
-  fieldsPart <- mapM buildField fields
+  klass@(M.Class _ className _ _ _) <- R.asks J.getClass
+  allFields <- J.getAllFields klass
+  fieldsPart <- mapM buildField allFields
   return $ "public " ++ className ++ " build() {\n" ++
     U.indent
       (("return new " ++ className ++ "(\n" ++
