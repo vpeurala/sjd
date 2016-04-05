@@ -113,7 +113,7 @@ toString = do
   allFields <- J.getAllFields klass
   return $ "@Override\npublic String toString() {\n" ++
     U.indent ("return \"" ++ className ++ "@\" + System.identityHashCode(this) + \": {\"\n" ++
-      U.indent (concatMap (\(M.Field fieldName fieldType) -> "+ \"" ++ fieldName ++ " = '\" + " ++ (getOrIs fieldType) ++ U.upcase fieldName ++ "() + \"'\"\n") allFields) ++
+      U.indent (concatMap (\(M.Field fieldName fieldType) -> "+ \"" ++ fieldName ++ " = '\" + " ++ getOrIs fieldType ++ U.upcase fieldName ++ "() + \"'\"\n") allFields) ++
       ";\n") ++
     "}\n"
 
