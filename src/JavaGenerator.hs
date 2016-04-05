@@ -113,7 +113,7 @@ toString = do
   allFields <- J.getAllFields klass
   return $ "@Override\npublic String toString() {\n" ++
     U.indent ("return \"" ++ className ++ "@\" + System.identityHashCode(this) + \": {\"\n" ++
-      U.indent (concatMap (\(M.Field fieldName _) -> "+ \"" ++ fieldName ++ " = '\" + " ++ fieldName ++ " + \"'\"\n") allFields) ++
+      U.indent (concatMap (\(M.Field fieldName fieldType) -> "+ \"" ++ fieldName ++ " = '\" + " ++ (getOrIs fieldType) ++ U.upcase fieldName ++ "() + \"'\"\n") allFields) ++
       ";\n") ++
     "}\n"
 
@@ -128,11 +128,10 @@ equals = do
       "if (this.getClass() != o.getClass()) return false;\n" ++
       className ++ " that = (" ++ className ++ ") o;\n" ++
       concatMap (
-        \(M.Field fieldName fieldType) ->
-          if M.isPrimitive fieldType then
-            "if (this." ++ fieldName ++ " != that." ++ fieldName ++ ") return false;\n"
-          else
-            "if (!this." ++ fieldName ++ ".equals(that." ++ fieldName ++ ")) return false;\n"
+        \(M.Field fieldName fieldType) -> case fieldType of
+          M.Boolean                   -> "if (this.is" ++ U.upcase fieldName ++ "() != that.is" ++ U.upcase fieldName ++ "()) return false;\n"
+          _ | M.isPrimitive fieldType -> "if (this.get" ++ U.upcase fieldName ++ "() != that.get" ++ U.upcase fieldName ++ "()) return false;\n"
+          _                           -> "if (!this.get" ++ U.upcase fieldName ++ "().equals(that.get" ++ U.upcase fieldName ++ "())) return false;\n"
         ) allFields ++
       "return true;\n"
     ) ++
@@ -147,12 +146,12 @@ hashCode = do
       "int result = 0;\n" ++
       concatMap (
         \(M.Field fieldName fieldType) -> case fieldType of
-          M.Long                        -> "result = 31 * Long.hashCode(" ++ fieldName ++ ");\n"
-          M.Float                       -> "result = 31 * Float.hashCode(" ++ fieldName ++ ");\n"
-          M.Double                      -> "result = 31 * Double.hashCode(" ++ fieldName ++ ");\n"
-          M.Boolean                     -> "result = 31 * result + (" ++ fieldName ++ " ? 1 : 0);\n"
-          _ | M.isPrimitive fieldType -> "result = 31 * result + " ++ fieldName ++ ";\n"
-          _                           -> "result = 31 * result + " ++ fieldName ++ ".hashCode();\n"
+          M.Long                      -> "result = 31 * Long.hashCode(this.get" ++ U.upcase fieldName ++ "());\n"
+          M.Float                     -> "result = 31 * Float.hashCode(this.get" ++ U.upcase fieldName ++ "());\n"
+          M.Double                    -> "result = 31 * Double.hashCode(this.get" ++ U.upcase fieldName ++ "());\n"
+          M.Boolean                   -> "result = 31 * result + (this.is" ++ U.upcase fieldName ++ "() ? 1 : 0);\n"
+          _ | M.isPrimitive fieldType -> "result = 31 * result + get" ++ U.upcase fieldName ++ "();\n"
+          _                           -> "result = 31 * result + get" ++ U.upcase fieldName ++ "().hashCode();\n"
         ) allFields
       ) ++
     U.indent "return result;\n" ++
