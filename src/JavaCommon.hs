@@ -2,6 +2,7 @@ module JavaCommon where
 
 import Control.Monad.Reader
 import Data.List (find, nub)
+import Data.Monoid ((<>))
 
 import qualified Model as M
 
@@ -22,11 +23,11 @@ data Generator = ClassSpecificGenerator {
 
 generate :: Generator -> M.Codebase -> [M.JavaSource]
 generate generator codebase@(M.Codebase packages) =
-  concatMap (packageToSources generator codebase) packages
+  packageToSources generator codebase =<< packages
 
 packageToSources :: Generator -> M.Codebase -> M.Package -> [M.JavaSource]
 packageToSources generator codebase package@(M.Package _ classes) =
-  map (generateSourceForClass generator generator codebase package) classes
+  fmap (generateSourceForClass generator generator codebase package) classes
 
 javaize :: M.FieldType -> M.SourceCode
 javaize fieldType = case fieldType of
@@ -38,8 +39,8 @@ javaize fieldType = case fieldType of
   M.Long                -> "long"
   M.Float               -> "float"
   M.Double              -> "double"
-  M.List fieldType'     -> "List<" ++ javaize fieldType' ++ ">"
-  M.Optional fieldType' -> "Optional<" ++ javaize fieldType' ++ ">"
+  M.List fieldType'     -> "List<" <> javaize fieldType' <> ">"
+  M.Optional fieldType' -> "Optional<" <> javaize fieldType' <> ">"
   M.Object className    -> className
 
 isDomainType :: M.FieldType -> ClassReader Bool
@@ -51,13 +52,13 @@ isDomainType _ = return False
 findDomainClass :: M.ClassName -> ClassReader (Maybe M.Class)
 findDomainClass searchedClassName = do
   M.Codebase packages <- asks getCodebase
-  let allClasses = concatMap (\(M.Package _ classes) -> classes) packages
+  let allClasses = (\(M.Package _ classes) -> classes) =<< packages
   return $ find (\(M.Class _ className _ _ _) -> className == searchedClassName) allClasses
 
 getAllFields :: M.Class -> ClassReader [M.Field]
 getAllFields klass@(M.Class _ _ _ _ fields) = do
   allSuperClassFields <- getSuperClassFields klass
-  return $ allSuperClassFields ++ fields
+  return $ allSuperClassFields <> fields
 
 getSuperClassFields :: M.Class -> ClassReader [M.Field]
 getSuperClassFields (M.Class _ _ maybeExtends _ _) =
@@ -78,7 +79,7 @@ packagesForClass _ = error "This should be unreachable code"
 fqns :: M.FieldType -> ClassReader [M.FullyQualifiedClassName]
 fqns fieldType@(M.Object className) = do
   packages <- packagesForClass fieldType
-  return $ map (\(M.Package (Just packageName) _) -> packageName ++ "." ++ className) packages
+  return $ fmap (\(M.Package (Just packageName) _) -> packageName <> "." <> className) packages
 fqns _ = error "This should be unreachable code"
 
 needsImport :: M.FieldType -> ClassReader Bool
@@ -97,8 +98,8 @@ importDeclarations = do
   allFields <- getAllFields klass
   calculatedImports <- calculateImportsFromFields allFields
   classImports' <- classImports generator
-  let allImports = nub $ imports ++ calculatedImports ++ classImports'
-  return $ concatMap (\imp -> "import " ++ imp ++ ";\n") allImports
+  let allImports = nub $ imports <> calculatedImports <> classImports'
+  return $ (\imp -> "import " <> imp <> ";\n") =<< allImports
 
 calculateImportsFromFields :: [M.Field] -> ClassReader [M.Import]
 calculateImportsFromFields fields = do
