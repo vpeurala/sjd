@@ -9,6 +9,7 @@ import JavaBuilderGenerator as JBG
 
 import Data.List (intercalate)
 import Data.List.Split
+import Data.Monoid ((<>))
 import Text.ParserCombinators.Parsec
 import System.Directory (createDirectoryIfMissing)
 import System.Environment (getArgs)
@@ -32,12 +33,12 @@ process codebase =
       builderSources = JC.generate (ClassSpecificGenerator JBG.generateJavaClass JBG.importsFromFieldType JBG.classImports) codebase
   in  do
       mapM_ (\(JavaSource fqn sourceCode) -> do
-        createDirectoryIfMissing True ("src/main/java/" ++ fqnToPackageDir fqn)
-        writeFile ("src/main/java/" ++ fqnToFile fqn ++ ".java") sourceCode
+        createDirectoryIfMissing True ("src/main/java/" <> fqnToPackageDir fqn)
+        writeFile ("src/main/java/" <> fqnToFile fqn <> ".java") sourceCode
             ) javaSources
       mapM_ (\(JavaSource fqn sourceCode) -> do
-        createDirectoryIfMissing True ("src/main/java/" ++ fqnToPackageDir fqn)
-        writeFile ("src/main/java/" ++ fqnToFile fqn ++ "Builder.java") sourceCode
+        createDirectoryIfMissing True ("src/main/java/" <> fqnToPackageDir fqn)
+        writeFile ("src/main/java/" <> fqnToFile fqn <> "Builder.java") sourceCode
             ) builderSources
 
 fqnToPackageDir :: FullyQualifiedClassName -> String
