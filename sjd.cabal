@@ -45,6 +45,8 @@ test-suite sjd-test
   main-is:             Spec.hs
   build-depends:       base
                      , sjd
+                     , tasty == 0.11.0.2
+                     , tasty-golden == 2.3.1
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
