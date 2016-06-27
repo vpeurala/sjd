@@ -18,7 +18,7 @@ goldenTestsWrapper = testGroup
   [ withResource
       (withArgs ["test/customer.sjd"] runMain)
       (\_ -> return ())
-      (const goldenTests)]
+      (const goldenTests) ]
 
 goldenTests :: TestTree
 goldenTests = testGroup "GoldenTests" [domainClasses, builderClasses]
