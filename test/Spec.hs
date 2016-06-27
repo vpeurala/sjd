@@ -10,27 +10,33 @@ main :: IO ()
 main = defaultMain tests
 
 tests :: TestTree
-tests = testGroup "Tests" [goldenTests]
+tests = testGroup "Tests" [goldenTestsWrapper]
+
+goldenTestsWrapper :: TestTree
+goldenTestsWrapper = testGroup
+  "GoldenTestsWrapper"
+  [ withResource
+      (withArgs ["test/customer.sjd"] runMain)
+      (\_ -> return ())
+      (const goldenTests)]
 
 goldenTests :: TestTree
-goldenTests = testGroup
-  "GoldenTests"
-  [withResource
-    (withArgs ["test/customer.sjd"] runMain)
-    (\_ -> return ())
-    (const domainClasses)]
+goldenTests = testGroup "GoldenTests" [domainClasses, builderClasses]
 
 domainClasses :: TestTree
 domainClasses = testGroup "DomainClasses" $
                   map goldenJavaTest ["Customer"
-                                    , "CustomerBuilder"
                                     , "Item"
-                                    , "ItemBuilder"
                                     , "Product"
-                                    , "ProductBuilder"
                                     , "Specials"
+                                    , "SubSpecials"]
+
+builderClasses :: TestTree
+builderClasses = testGroup "BuilderClasses" $
+                  map goldenJavaTest ["CustomerBuilder"
+                                    , "ItemBuilder"
+                                    , "ProductBuilder"
                                     , "SpecialsBuilder"
-                                    , "SubSpecials"
                                     , "SubSpecialsBuilder"]
 
 goldenJavaTest :: String -> TestTree
