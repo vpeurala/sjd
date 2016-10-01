@@ -17,14 +17,16 @@ declarationToPackage (Nothing, classDeclarations) =
 declarationToPackage (Just (P.PackageDeclaration packageName), classDeclarations) =
   M.Package (Just packageName) $ fmap declarationToClass classDeclarations
 
-groupPackages :: [P.PackageOrClassDeclaration] -> [(Maybe P.PackageDeclaration, [P.ClassDeclaration])]
+groupPackages :: [P.TopLevelDeclaration] -> [(Maybe P.PackageDeclaration, [P.ClassDeclaration])]
 groupPackages declarations =
   let foldResult = foldl
         (\((currentPackage, currentClasses), packages) declaration -> case declaration of
           (P.OfPackageDeclaration pd) ->
             ((Just pd, []), (currentPackage, currentClasses):packages)
           (P.OfClassDeclaration cd) ->
-            ((currentPackage, cd:currentClasses), packages))
+            ((currentPackage, cd:currentClasses), packages)
+          (P.OfUnionDeclaration ud) ->
+            ((currentPackage, currentClasses), packages))
         ((Nothing, []), [])
         declarations
   in uncurry (:) foldResult

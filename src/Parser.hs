@@ -11,15 +11,18 @@ type FileName = String
 
 data FieldDeclaration = FieldDeclaration FieldName ClassName deriving (Show)
 
-data PackageOrClassDeclaration = OfPackageDeclaration PackageDeclaration |
-                                 OfClassDeclaration ClassDeclaration deriving (Show)
+data TopLevelDeclaration = OfPackageDeclaration PackageDeclaration |
+                           OfClassDeclaration ClassDeclaration |
+                           OfUnionDeclaration UnionDeclaration deriving (Show)
 
 data PackageDeclaration = PackageDeclaration PackageName deriving (Show)
 
 -- TODO vpeurala 10.11.2015: Support imports
 data ClassDeclaration = ClassDeclaration ClassName (Maybe Extends) Implements [FieldDeclaration] deriving (Show)
 
-data CodebaseDeclaration = CodebaseDeclaration [PackageOrClassDeclaration] deriving (Show)
+data UnionDeclaration = UnionDeclaration ClassName deriving (Show)
+
+data CodebaseDeclaration = CodebaseDeclaration [TopLevelDeclaration] deriving (Show)
 
 comment = do
   P.string "#" >> P.manyTill P.anyChar P.newline >> P.spaces
@@ -36,6 +39,10 @@ packageName = P.many1 . P.oneOf $ mconcat [['A'..'Z'], ['a'..'z'], ['0'..'9'], "
 
 -- TODO vpeurala 5.11.2015: Take primitives and other special cases into account
 fieldType = typeName
+
+constructorDeclaration = do
+    P.manyTill P.anyChar P.newline
+    return ()
 
 fieldDeclaration = do
     fieldName' <- fieldName
@@ -80,15 +87,25 @@ packageDeclaration = do
     spaces
     return . OfPackageDeclaration $ PackageDeclaration packageName'
 
-packageOrClassDeclaration = do
+unionDeclaration = do
+    _ <- P.string "union "
     spaces
-    pocD <- P.try packageDeclaration <|> classDeclaration
+    unionName' <- className
+    spaces
+    constructors <- P.many (P.try constructorDeclaration)
+    return . OfUnionDeclaration $ UnionDeclaration unionName'
+
+topLevelDeclaration = do
+    spaces
+    pocD <- P.try packageDeclaration
+            <|> P.try classDeclaration
+            <|> unionDeclaration
     spaces
     return pocD
 
 codebase = do
     spaces
-    packageOrClassDeclarations <- P.sepBy packageOrClassDeclaration spaces
+    packageOrClassDeclarations <- P.sepBy topLevelDeclaration spaces
     P.eof
     return $ CodebaseDeclaration packageOrClassDeclarations
 

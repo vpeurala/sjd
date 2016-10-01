@@ -43,11 +43,11 @@ class WorkEntry
 class OccupationGroup
   name: String
 
-# class Location
-#  ShipLocation ShipId AreaId |
-#  BuildingLocation BuildingId
+union Location
+  ShipLocation ShipId AreaId
+  | BuildingLocation BuildingId
  
-# ShipId Int
-# AreaId Int
-# BuildingId Int
-# Id (Maybe Int)
+# alias ShipId Int
+# alias AreaId Int
+# alias BuildingId Int
+# alias Id Optional<Int>
