@@ -17,7 +17,7 @@ import System.Environment (getArgs)
 parseFile :: String -> IO (Either ParseError P.CodebaseDeclaration)
 parseFile fileName = do
   content <- readFile fileName
-  return $ P.parseCodebase content
+  return $ P.parseCodebase fileName content
 
 runMain :: IO ()
 runMain = do

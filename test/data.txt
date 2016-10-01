@@ -1,0 +1,53 @@
+class Person
+  id: Id
+  firstName: String
+  lastName: String
+  company: Company
+
+class Company
+  id: Id
+  name: String
+
+class ContactPerson
+  email: Email
+  phoneNumber: PhoneNumber
+  person: Person
+
+class User
+  confirmed: Boolean
+  password: Password
+  token: String
+  contactPerson: ContactPerson
+
+class Worker
+  keynumber: String
+  person: Person
+
+class Workweek
+  days: List<Workday>
+
+class Workday
+  startTime: LocalDateTime
+  endTime: LocalDateTime
+
+class WorkEntry
+  location: Location
+  worker: Worker
+  occupationGroup: OccupationGroup
+  oxyAcetylene: Boolean
+  compositeGas: Boolean
+  argon: Boolean
+  compressedAir: Boolean
+  hotWorks: Boolean
+
+class OccupationGroup
+  name: String
+
+# class Location
+#  ShipLocation ShipId AreaId |
+#  BuildingLocation BuildingId
+ 
+# ShipId Int
+# AreaId Int
+# BuildingId Int
+# Id (Maybe Int)
