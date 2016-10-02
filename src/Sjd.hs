@@ -6,7 +6,7 @@ import Transform as T
 import JavaCommon as JC
 import qualified JavaGenerator as JG
 import JavaBuilderGenerator as JBG
-import ScalaGenerator as SG
+--import ScalaGenerator as SG
 
 import Data.List (intercalate)
 import Data.List.Split
@@ -32,7 +32,7 @@ process :: M.Codebase -> IO ()
 process codebase =
   let javaSources = JC.generate (JavaClassSpecificGenerator JG.generateJavaClass JG.importsFromFieldType JG.classImports) codebase
       builderSources = JC.generate (JavaClassSpecificGenerator JBG.generateJavaClass JBG.importsFromFieldType JBG.classImports) codebase
-      scalaSources = JC.generate (ScalaPackageSpecifigGenerator SG.generateScalaPackage) codebase
+      --scalaSources = JC.generate (ScalaPackageSpecifigGenerator SG.generateScalaPackage) codebase
       javaDir = "src/main/java"
       scalaDir = "src/main/scala"
   in  do
@@ -44,10 +44,10 @@ process codebase =
         createDirectoryIfMissing True (javaDir <> "/" <> fqnToPackageDir fqn)
         writeFile (javaDir <> "/" <> fqnToFile fqn <> "Builder.java") sourceCode
             ) builderSources
-      mapM_ (\(ScalaSource fqn sourceCode) -> do
+      {--mapM_ (\(ScalaSource fqn sourceCode) -> do
               createDirectoryIfMissing True (scalaDir <> "/" <> fqnToPackageDir fqn)
               writeFile (scalaDir <> "/" <> fqnToFile fqn <> ".scala") sourceCode
-                  ) scalaSources
+                  ) scalaSources--}
 
 fqnToPackageDir :: FullyQualifiedClassName -> String
 fqnToPackageDir fqn =
