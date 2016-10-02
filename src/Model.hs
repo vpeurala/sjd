@@ -41,6 +41,8 @@ type SourceCode = String
 
 data JavaSource = JavaSource FullyQualifiedClassName SourceCode deriving (Eq, Ord, Show)
 
+data ScalaSource = ScalaSource SourceCode deriving (Eq, Ord, Show)
+
 isPrimitive :: FieldType -> Bool
 isPrimitive ft = case ft of
   Boolean -> True

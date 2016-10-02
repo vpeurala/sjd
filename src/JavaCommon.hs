@@ -1,3 +1,9 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE ExplicitForAll #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NamedFieldPuns #-}
 module JavaCommon where
 
 import Control.Monad.Reader
@@ -6,19 +12,51 @@ import Data.Monoid ((<>))
 
 import qualified Model as M
 
+class ReaderEnv a where
+  getGenerator :: a -> Generator
+  getCodebase  :: a -> M.Codebase
+  getPackage   :: a -> M.Package
+
 data ClassReaderEnv = ClassReaderEnv {
-                        getGenerator :: Generator,
-                        getCodebase  :: M.Codebase,
-                        getPackage   :: M.Package,
-                        getClass     :: M.Class
+                        getGenerator1 :: Generator,
+                        getCodebase1  :: M.Codebase,
+                        getPackage1   :: M.Package,
+                        getClass      :: M.Class
                       }
 
-type ClassReader a = Reader ClassReaderEnv a
+instance ReaderEnv ClassReaderEnv where
+    getGenerator = getGenerator1
+    getCodebase  = getCodebase1
+    getPackage   = getPackage1
 
-data Generator = ClassSpecificGenerator {
-                   generateSourceForClass :: Generator -> M.Codebase -> M.Package -> M.Class -> M.JavaSource,
-                   importsFromFieldType :: M.FieldType -> ClassReader [M.Import],
-                   classImports :: ClassReader [M.Import]
+data PackageReaderEnv = PackageReaderEnv {
+                          getGenerator2 :: Generator,
+                          getCodebase2  :: M.Codebase,
+                          getPackage2   :: M.Package
+                        }
+
+toClassReaderEnv :: PackageReaderEnv -> M.Class -> ClassReaderEnv
+toClassReaderEnv (PackageReaderEnv {getGenerator2, getCodebase2, getPackage2}) c = ClassReaderEnv { getGenerator1 = getGenerator2
+                                                                                                  , getCodebase1  = getCodebase2
+                                                                                                  , getPackage1   = getPackage2
+                                                                                                  , getClass      = c }
+
+instance ReaderEnv PackageReaderEnv where
+    getGenerator = getGenerator2
+    getCodebase  = getCodebase2
+    getPackage   = getPackage2
+
+type ClassReader = Reader ClassReaderEnv
+
+type PackageReader = Reader PackageReaderEnv
+
+data Generator = JavaClassSpecificGenerator {
+                   generateSourceForClass :: Generator -> M.Codebase -> M.Package -> M.Class -> M.JavaSource
+                 , importsFromFieldType :: M.FieldType -> ClassReader [M.Import]
+                 , classImports :: ClassReader [M.Import]
+                 }
+                 | ScalaPackageSpecificGenerator {
+                   generateSourcesForPackage :: Generator -> M.Codebase -> M.Package -> M.ScalaSource
                  }
 
 generate :: Generator -> M.Codebase -> [M.JavaSource]
