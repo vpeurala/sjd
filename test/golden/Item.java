@@ -46,7 +46,7 @@ public class Item {
     public int hashCode() {
         int result = 0;
         result = 31 * result + getUid().hashCode();
-        result = 31 * Long.hashCode(this.getItemId());
+        result = 31 * result + Long.hashCode(this.getItemId());
         return result;
     }
 }

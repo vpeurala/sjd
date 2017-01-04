@@ -173,9 +173,9 @@ public class Specials extends Product {
     public int hashCode() {
         int result = 0;
         result = 31 * result + getUid().hashCode();
-        result = 31 * Long.hashCode(this.getItemId());
+        result = 31 * result + Long.hashCode(this.getItemId());
         result = 31 * result + getValidSubProducts().hashCode();
-        result = 31 * Long.hashCode(this.getPrice());
+        result = 31 * result + Long.hashCode(this.getPrice());
         result = 31 * result + (this.isShowView() ? 1 : 0);
         result = 31 * result + getDescription().hashCode();
         result = 31 * result + getChange().hashCode();
@@ -185,9 +185,9 @@ public class Specials extends Product {
         result = 31 * result + getCharField();
         result = 31 * result + getShortField();
         result = 31 * result + getIntField();
-        result = 31 * Long.hashCode(this.getLongField());
-        result = 31 * Float.hashCode(this.getFloatField());
-        result = 31 * Double.hashCode(this.getDoubleField());
+        result = 31 * result + Long.hashCode(this.getLongField());
+        result = 31 * result + Float.hashCode(this.getFloatField());
+        result = 31 * result + Double.hashCode(this.getDoubleField());
         result = 31 * result + getStringField().hashCode();
         result = 31 * result + getListField().hashCode();
         result = 31 * result + getOptionalField().hashCode();

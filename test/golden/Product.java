@@ -95,9 +95,9 @@ public class Product extends Item {
     public int hashCode() {
         int result = 0;
         result = 31 * result + getUid().hashCode();
-        result = 31 * Long.hashCode(this.getItemId());
+        result = 31 * result + Long.hashCode(this.getItemId());
         result = 31 * result + getValidSubProducts().hashCode();
-        result = 31 * Long.hashCode(this.getPrice());
+        result = 31 * result + Long.hashCode(this.getPrice());
         result = 31 * result + (this.isShowView() ? 1 : 0);
         result = 31 * result + getDescription().hashCode();
         result = 31 * result + getChange().hashCode();

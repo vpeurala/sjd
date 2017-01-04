@@ -146,9 +146,9 @@ hashCode = do
     U.indent (
       "int result = 0;\n" <>
         ((\(M.Field fieldName fieldType) -> case fieldType of
-          M.Long                      -> "result = 31 * Long.hashCode(this.get" <> U.upcase fieldName <> "());\n"
-          M.Float                     -> "result = 31 * Float.hashCode(this.get" <> U.upcase fieldName <> "());\n"
-          M.Double                    -> "result = 31 * Double.hashCode(this.get" <> U.upcase fieldName <> "());\n"
+          M.Long                      -> "result = 31 * result + Long.hashCode(this.get" <> U.upcase fieldName <> "());\n"
+          M.Float                     -> "result = 31 * result + Float.hashCode(this.get" <> U.upcase fieldName <> "());\n"
+          M.Double                    -> "result = 31 * result + Double.hashCode(this.get" <> U.upcase fieldName <> "());\n"
           M.Boolean                   -> "result = 31 * result + (this.is" <> U.upcase fieldName <> "() ? 1 : 0);\n"
           _ | M.isPrimitive fieldType -> "result = 31 * result + get" <> U.upcase fieldName <> "();\n"
           _                           -> "result = 31 * result + get" <> U.upcase fieldName <> "().hashCode();\n"
