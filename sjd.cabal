@@ -1,5 +1,5 @@
 name:                sjd
-version:             0.2
+version:             0.3
 synopsis:            Safe Java domain generator (safe as in null-safe)
 description:         Generates lots of boilerplate Java for you
 homepage:            http://github.com/vpeurala/sjd#readme
