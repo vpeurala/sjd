@@ -1,4 +1,4 @@
-.stack-work
-
-src/main/
+*.iml
 .idea
+.stack-work
+src/main/
